@@ -10,7 +10,7 @@ The repository was developed to support reproducible analysis associated with th
 
 ---
 
-## Repository Structure
+## ANN Repository Structure
 
 ```text
 project/
@@ -27,26 +27,29 @@ project/
 │   └── objective.py          # Optuna optimization function
 │
 ├── requirements.txt
-├── README.md
-└── LICENSE
 ```
 
 ---
 
-## Features
+## ML Repository Structure
 
-* Variance Inflation Factor (VIF)-based feature selection
-* Feature fusion analysis using:
-
-  * Vegetation indices (VIs)
-  * Structural features (SFs)
-  * Spectral bands (SBs)
-  * Texture features (TFs)
-* Artificial Neural Network (ANN) modeling using PyTorch
-* Hyperparameter optimization using Optuna
-* SHAP-based feature importance analysis
-* Cross-validation and independent test evaluation
-* Export of results to Excel format
+```text
+project/
+│
+├── Data/                      # Input datasets (train/test Excel files)
+├── outputs/                   # Model outputs (Excel results per experiment)
+│
+├── src/
+│   ├── main.py                # Main workflow pipeline
+│   ├── config.py              # Global parameters and settings
+│   ├── models.py              # Model factory (RF, SVR, PLSR, XGB)
+│   ├── tuning.py              # Hyperparameter tuning (RandomizedSearchCV)
+│   ├── evaluation.py          # Cross-validation and evaluation metrics
+│   ├── explainability.py      # SHAP-based feature importance
+│   ├── utils.py               # Preprocessing + VIF + helper functions
+│
+├── requirements.txt
+```
 
 ---
 
@@ -79,8 +82,8 @@ project/
 Clone the repository:
 
 ```bash
-git clone https://github.com/your_username/your_repository.git
-cd your_repository
+git clone https://github.com/jaydharpure2007/Cover_crop_biomass.git
+cd Cover_crop_biomass
 ```
 
 Install required packages:
@@ -98,16 +101,20 @@ Run the main script:
 ```bash
 python src/main.py
 ```
+---
 
-The workflow performs:
+# Workflow Pipeline
 
-1. Data preprocessing
-2. VIF-based feature selection
-3. Data standardization
-4. Hyperparameter optimization using Optuna
-5. ANN model training and evaluation
-6. SHAP explainability analysis
-7. Export of results
+1. Load training and testing data  
+2. Generate feature combinations  
+3. Apply VIF-based feature selection  
+4. Standardize features and target variable  
+5. Train models using Optuna or RandomizedSearchCV  
+6. Perform cross-validation  
+7. Train final model on full dataset  
+8. Evaluate on training and test sets  
+9. Compute SHAP feature importance  
+10. Save outputs to Excel files
 
 ---
 
@@ -164,7 +171,7 @@ Outputs are saved as Excel files inside the `outputs/` directory.
 If you use this repository, please cite:
 
 ```text
-[Add manuscript citation here after publication]
+[]
 ```
 
 ---
