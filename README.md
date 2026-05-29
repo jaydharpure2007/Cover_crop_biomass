@@ -1,4 +1,4 @@
-# Cover Crop Biomass Modeling Using Machine Learning and Artificial Neural Networks
+# Cover crop biomass modeling using Machine Learning and Artificial Neural Networks
 
 ## Overview
 
