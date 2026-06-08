@@ -1,4 +1,13 @@
-# src/utils.py
+"""
+Utility functions for ANN-based biomass modeling workflow.
+
+This module includes:
+    - Reproducibility control (random seed setting)
+    - Data preprocessing utilities
+    - PyTorch DataLoader preparation
+    - Variance Inflation Factor (VIF) computation
+    - Feature selection based on multicollinearity
+"""
 
 import random
 import numpy as np
@@ -9,7 +18,14 @@ import statsmodels.api as sm
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 def set_seed(seed=42):
+    """
+    Set random seed for full reproducibility across libraries.
 
+    Ensures deterministic behavior for:
+        - Python random
+        - NumPy
+        - PyTorch (CPU and GPU)
+    """
     random.seed(seed)
     np.random.seed(seed)
 
@@ -22,13 +38,34 @@ def set_seed(seed=42):
 
 
 def preprocess_data(data_model):
+    """
+    Split dataset into features (X) and target (y).
 
+    Assumes last column is the target variable.
+    """
     X = np.array(data_model.iloc[:, :-1])
     y = np.array(data_model.iloc[:, -1]).reshape(-1, 1)
 
     return X, y
 
 def prepare_dataloader(X, y, batch_size, seed=42):
+    """
+    Create PyTorch DataLoader for training and validation.
+
+    Parameters
+    ----------
+    X : numpy.ndarray
+        Feature matrix
+
+    y : numpy.ndarray
+        Target variable
+
+    batch_size : int
+        Batch size for training
+
+    seed : int
+        Random seed for shuffling
+    """
     g = torch.Generator()
     g.manual_seed(seed)
 
@@ -47,7 +84,11 @@ def prepare_dataloader(X, y, batch_size, seed=42):
     return dataloader
     
 def calculate_vif(X):
-    """Calculate VIF for each feature."""
+    """
+    Compute Variance Inflation Factor (VIF)
+    for each feature to detect multicollinearity.
+    """
+    
     X = sm.add_constant(X)
 
     vif_df = pd.DataFrame()
@@ -62,7 +103,11 @@ def calculate_vif(X):
     return vif_df
 
 def vif_feature_selection(data, features, target, vif_threshold=5):
-    # Prepare data
+    """
+    Iteratively remove features with high multicollinearity
+    using Variance Inflation Factor (VIF).
+    """
+    
     data_vif = data[features + [target]]
     X_vif = data_vif[features].copy()
     # Iteratively remove high-VIF features

@@ -1,4 +1,11 @@
-# src/train.py
+"""
+Training utilities for ANN-based biomass prediction.
+
+This module includes:
+    - Model training with early stopping
+    - Model evaluation (RMSE, R²)
+    - Optuna objective function for hyperparameter tuning
+"""
 
 import torch
 import torch.nn as nn
@@ -20,6 +27,12 @@ def train_model(
     max_epochs=1000,
     patience=10
 ):
+    """
+    Train ANN model using early stopping on validation loss.
+
+    Stops training when validation loss does not improve
+    for 'patience' consecutive epochs.
+    """
     best_loss = float('inf')
     counter = 0
     best_model_state = None
@@ -55,6 +68,9 @@ def train_model(
     return model, best_epoch
 
 def evaluate_model(model, X, y, scaler_y, device):
+    """
+    Evaluate trained model on dataset and return metrics in original scale.
+    """
     model.eval()
     with torch.no_grad():
         X_tensor = torch.tensor(X, dtype=torch.float32).to(device)
@@ -66,21 +82,33 @@ def evaluate_model(model, X, y, scaler_y, device):
     return rmse, r2, y_inv.flatten(), preds_inv.flatten()
 
 def objective(trial, X_train, y_train, device, scaler_y, seed = 42):
+    """
+    Optuna objective function for ANN hyperparameter tuning.
+
+    Uses K-Fold cross-validation and returns mean RMSE.
+    """
+    # Hyperparameter search space
     hidden_size = trial.suggest_int("hidden_size", 50, 300)
     dropout_rate = trial.suggest_float("dropout_rate", 0.1, 0.4)
     batch_size = trial.suggest_int("batch_size", 8, 64)
     lr = trial.suggest_float("lr", 1e-4, 1e-2, log=True)
     patience = trial.suggest_int("patience", 10, 20)
+
+    # Cross-validation setup
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
     rmses, r2s, best_epochs = [], [], []
 
     for train_idx, val_idx in kf.split(X_train):
+        
+        # Split data
         X_tr, X_val = X_train[train_idx], X_train[val_idx]
         y_tr, y_val = y_train[train_idx], y_train[val_idx]
 
+        # Load data
         train_loader = prepare_dataloader(X_tr, y_tr, batch_size, seed)
         val_loader = prepare_dataloader(X_val, y_val, batch_size, seed)
 
+        # Initialize model
         model = ANNModel(X_train.shape[1], hidden_size, dropout_rate).to(device)
         criterion = nn.MSELoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -98,7 +126,7 @@ def objective(trial, X_train, y_train, device, scaler_y, seed = 42):
         all_preds = np.concatenate(all_preds, axis=0)
         all_targets = np.concatenate(all_targets, axis=0)
 
-        # Avoid NaNs
+        # Ensure no NaN values during training/evaluation
         if np.isnan(all_preds).any() or np.isnan(all_targets).any():
             raise ValueError("NaN detected in predictions or targets.")
 
@@ -110,7 +138,8 @@ def objective(trial, X_train, y_train, device, scaler_y, seed = 42):
         rmses.append(rmse)
         r2s.append(r2)
         best_epochs.append(best_epoch)
-
+    
+    # Store Optuna metadata for analysis
     trial.set_user_attr("R2", np.mean(r2s))
     trial.set_user_attr("max_best_epoch", np.max(best_epochs))
     return np.mean(rmses)

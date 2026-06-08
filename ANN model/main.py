@@ -39,10 +39,22 @@ from explainability import compute_shap
 # Main
 # --------------------------------------------------
 def main():
+     """
+    Execute the complete ANN biomass modeling workflow.
+
+    Workflow:
+        1. Load training and testing datasets
+        2. Generate feature combinations
+        3. Perform VIF-based feature selection
+        4. Standardize predictors and target variable
+        5. Optimize ANN hyperparameters using Optuna
+        6. Train the final ANN model
+        7. Evaluate model performance
+        8. Compute SHAP feature importance
+        9. Export results to Excel
+    """
     set_seed(SEED)
     print(f"Running on: {DEVICE}")
-
-    start_time = time.time()
 
     all_lists = [VIs, SFs, SBs, TFs]
     list_names = ["VIs", "SFs", "SBs", "TFs"]
@@ -50,17 +62,19 @@ def main():
     os.makedirs(OUTPUT_PATH, exist_ok=True)
 
     # --------------------------------------------------
-    # Load data
+    # Load training and testing datasets
     # --------------------------------------------------
     Train = pd.read_excel("Data/AGB_train_test.xlsx", sheet_name="train")
 
     Test = pd.read_excel("Data/AGB_train_test.xlsx", sheet_name="test")
 
     # --------------------------------------------------
-    # Feature combinations
+    # Iterate through all feature-set combinations
+    # (VIs, SFs, SBs, TFs)
     # --------------------------------------------------
     for r in range(1, 5):
         for idx_combo in combinations(range(4), r):
+            start_time = time.time()
             selected_lists = [all_lists[i] for i in idx_combo]
             selected_names = [list_names[i] for i in idx_combo]
             combined_features = []
@@ -72,7 +86,7 @@ def main():
             os.makedirs(output_dir, exist_ok=True)
 
             # --------------------------------------------------
-            # VIF Feature Selection
+            # Remove multicollinear predictors using VIF
             # --------------------------------------------------
             features_vif, vif_df = vif_feature_selection(
                 data=Train,
@@ -88,7 +102,10 @@ def main():
             # --------------------------------------------------
             train_data = Train[features_vif + [TARGET]].copy()
             X_train, y_train = preprocess_data(train_data)
-
+            # --------------------------------------------------
+            # Standardize training predictors and target variable
+            # Statistics are learned from the training data only
+            # --------------------------------------------------
             scaler_x = StandardScaler()
             scaler_y = StandardScaler()
 
@@ -101,18 +118,23 @@ def main():
             # --------------------------------------------------
             test_data = Test[features_vif + [TARGET]].copy()
             X_test, y_test = preprocess_data(test_data)
+            # --------------------------------------------------
+            # Apply training-derived scaling parameters to the
+            # independent test dataset
+            # --------------------------------------------------
             X_test = scaler_x.transform(X_test)
             y_test = scaler_y.transform(y_test)
             X_test = X_test.astype(np.float32)
 
             # --------------------------------------------------
-            # Optuna
+            # Hyperparameter optimization using Optuna TPE search
+            # Objective metric: validation RMSE
             # --------------------------------------------------
             sampler = optuna.samplers.TPESampler(seed=SEED)
             study = optuna.create_study(direction="minimize", sampler=sampler)
             study.optimize(lambda trial: objective(trial, X_train, y_train, DEVICE, scaler_y, seed = SEED), n_trials=N_TRIALS, catch=(ValueError, FloatingPointError))
             # --------------------------------------------------
-            # Trial results
+            # Collect and rank Optuna trial results
             # --------------------------------------------------
             trial_data = []
             for trial in study.trials:
@@ -137,7 +159,7 @@ def main():
             )
             best_params = trials_df.iloc[0]
             # --------------------------------------------------
-            # Final ANN Model
+            # Initialize ANN using the best hyperparameter set
             # --------------------------------------------------
             final_model = ANNModel(
                 input_size=X_train.shape[1],
@@ -151,13 +173,14 @@ def main():
             patience = int(best_params["patience"])
             max_epochs = int(best_params["Best_Epoch"])
             # --------------------------------------------------
-            # Train-validation split
+            # Create internal train-validation split for final
+            # model training and early stopping
             # --------------------------------------------------
             X_tr, X_val, y_tr, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=SEED)
             train_loader = prepare_dataloader(X_tr, y_tr, batch_size=batch_size, seed = SEED)
             val_loader = prepare_dataloader(X_val, y_val, batch_size=batch_size, seed = SEED)
             # --------------------------------------------------
-            # Train model
+            # Train ANN with early stopping
             # --------------------------------------------------
             model, best_epoch = train_model(
                 final_model,
@@ -170,7 +193,8 @@ def main():
                 patience=patience
             )
             # --------------------------------------------------
-            # Evaluate
+            # Evaluate model performance on training and
+            # independent test datasets
             # --------------------------------------------------
 
             train_rmse, train_r2, y_train_obs, y_train_pred = evaluate_model(
@@ -192,24 +216,20 @@ def main():
             print(f"Test R² : {test_r2:.3f}")
 
             # --------------------------------------------------
-            # SHAP
+            # Compute SHAP-based feature importance
             # --------------------------------------------------
-            shap_importance = compute_shap(
+            shap_df = compute_shap(
                 final_model=final_model,
                 X_train=X_train,
                 feature_names=features_vif,
                 device=DEVICE
             )
-            shap_df = pd.DataFrame({
-                "Feature": features_vif,
-                "Mean SHAP": shap_importance
-            })
             shap_df = shap_df.sort_values(
                 by="Mean SHAP",
                 ascending=False
             )
             # --------------------------------------------------
-            # Performance table
+            # Compile model performance summary
             # --------------------------------------------------
             performance_df = pd.DataFrame([
                 {"Dataset": "Training", "RMSE": train_rmse, "R²": train_r2},
@@ -217,7 +237,7 @@ def main():
                 {"Dataset": "Testing", "RMSE": test_rmse, "R²": test_r2}
             ])
             # --------------------------------------------------
-            # Save outputs
+            # Export results, model diagnostics, and feature
             # --------------------------------------------------
 
             total_time = time.time() - start_time
