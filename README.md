@@ -21,10 +21,9 @@ project/
 │   ├── main.py               # Main workflow
 │   ├── config.py             # Global configuration variables
 │   ├── model.py              # ANN model architecture
-│   ├── train.py              # Training and evaluation functions
+│   ├── train.py              # Training, evaluation functions and Optuna optimization function
 │   ├── utils.py              # Utility functions
 │   ├── explainability.py     # SHAP analysis functions
-│   └── objective.py          # Optuna optimization function
 │
 ├── requirements.txt
 ```
