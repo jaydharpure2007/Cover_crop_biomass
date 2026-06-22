@@ -9,6 +9,11 @@ The repository was developed to support reproducible analysis associated with th
 > *[Cover Crop Biomass Estimation using UAV-Based Multispectral Feature Fusion and Machine Learning]*
 
 ---
+## Workflow Overview
+
+The overall modeling workflow is shown below:
+
+![Overall workflow](images/Overall workflow.png)
 
 ## ANN Repository Structure
 
