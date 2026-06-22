@@ -12,7 +12,7 @@ The repository was developed to support reproducible analysis associated with th
 ## Workflow Overview
 
 <p align="center">
-<img src="images/Overall workflow.png" width="850">
+<img src="images/Overall workflow.png" width="1000">
 </p>
 
 ## ANN Repository Structure
