@@ -175,11 +175,18 @@ Outputs are saved as Excel files inside the `outputs/` directory.
 If you use this repository, please cite:
 
 ```text
-[]
+@article{Dharpure2026,
+  author = {Dharpure, Jaydeo K. and Cobos, Christopher and Baath, Gurjinder S. and Burke, Joseph A. and DeLaune, Paul B. and Lewis, Katie L.},
+  title = {Cover crop biomass estimation using {UAV}-based multispectral feature fusion and machine learning},
+  journal = {Smart Agricultural Technology},
+  year = {2026},
+  pages = {102350},
+  doi = {10.1016/j.atech.2026.102350}
+}
 ```
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
